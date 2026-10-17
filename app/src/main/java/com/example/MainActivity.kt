@@ -52,12 +52,12 @@ fun NoriseStorApp(viewModel: FashionViewModel = viewModel()) {
   }
 
   val isBottomNavVisible = when (currentScreen) {
-    is Screen.ProductDetail, is Screen.Checkout -> false
+    is Screen.ProductDetail, is Screen.Checkout, is Screen.AdminLogin, is Screen.AdminDashboard -> false
     else -> true
   }
 
   val isTopBarVisible = when (currentScreen) {
-    is Screen.ProductDetail, is Screen.Checkout, is Screen.OrderTracking -> false
+    is Screen.ProductDetail, is Screen.Checkout, is Screen.OrderTracking, is Screen.AdminLogin, is Screen.AdminDashboard -> false
     else -> true
   }
 
@@ -180,6 +180,20 @@ fun NoriseStorApp(viewModel: FashionViewModel = viewModel()) {
             viewModel = viewModel,
             onNavigateToOrders = { viewModel.navigateTo(Screen.OrdersHistory) },
             onNavigateToWishlist = { viewModel.navigateTo(Screen.Wishlist) }
+          )
+        }
+        is Screen.AdminLogin -> {
+          AdminLoginScreen(
+            viewModel = viewModel,
+            onBack = { viewModel.navigateBack() },
+            onLoginSuccess = { viewModel.navigateTo(Screen.AdminDashboard) }
+          )
+        }
+        is Screen.AdminDashboard -> {
+          AdminDashboardScreen(
+            viewModel = viewModel,
+            onBack = { viewModel.navigateTo(Screen.Home) },
+            onLogout = { viewModel.navigateTo(Screen.Home) }
           )
         }
       }

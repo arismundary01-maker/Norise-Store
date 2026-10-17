@@ -312,8 +312,10 @@ fun HomeScreen(
         Card(
           modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 40.dp),
-          colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            .padding(vertical = 32.dp),
+          colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+          shape = RoundedCornerShape(20.dp),
+          elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
           Column(
             modifier = Modifier
@@ -321,33 +323,63 @@ fun HomeScreen(
               .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
           ) {
-            Icon(
-              imageVector = Icons.Outlined.SentimentDissatisfied,
-              contentDescription = null,
-              tint = MaterialTheme.colorScheme.primary,
-              modifier = Modifier.size(54.dp)
-            )
-            Spacer(modifier = Modifier.height(12.dp))
+            Box(
+              modifier = Modifier
+                .size(72.dp)
+                .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
+              contentAlignment = Alignment.Center
+            ) {
+              Icon(
+                imageVector = Icons.Outlined.Checkroom,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(40.dp)
+              )
+            }
+            Spacer(modifier = Modifier.height(14.dp))
             Text(
-              text = "Busana Tidak Ditemukan",
+              text = if (searchQuery.isNotEmpty()) "Busana Tidak Ditemukan" else "Koleksi Beranda Masih Kosong",
               style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(6.dp))
             Text(
-              text = "Tidak ada produk yang cocok dengan pencarian \"$searchQuery\". Coba cari dengan kata kunci lain.",
+              text = if (searchQuery.isNotEmpty()) {
+                "Tidak ada produk yang cocok dengan pencarian \"$searchQuery\"."
+              } else {
+                "Hanya baju yang diupload oleh admin yang akan tampil di beranda Norise Store. Masuk sebagai admin untuk mengunggah busana Elegan Women by NORANISA ke Firebase Firestore."
+              },
               style = MaterialTheme.typography.bodySmall,
               textAlign = TextAlign.Center,
               color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(
-              onClick = {
-                viewModel.setSearchQuery("")
-                viewModel.setCategory("Semua")
-              },
-              colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-            ) {
-              Text("Tampilkan Semua Busana")
+            Spacer(modifier = Modifier.height(18.dp))
+            if (searchQuery.isNotEmpty()) {
+              Button(
+                onClick = {
+                  viewModel.setSearchQuery("")
+                  viewModel.setCategory("Semua")
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+              ) {
+                Text("Tampilkan Semua Busana")
+              }
+            } else {
+              Button(
+                onClick = {
+                  if (viewModel.isAdminLoggedIn.value) {
+                    viewModel.navigateTo(Screen.AdminDashboard)
+                  } else {
+                    viewModel.navigateTo(Screen.AdminLogin)
+                  }
+                },
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                modifier = Modifier.testTag("admin_upload_empty_cta")
+              ) {
+                Icon(Icons.Default.AdminPanelSettings, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("Masuk Admin & Upload Baju", fontWeight = FontWeight.Bold)
+              }
             }
           }
         }

@@ -150,9 +150,13 @@ object FashionData {
     )
   )
 
-  val sampleProducts = listOf(
+  // Homepage starts completely clean per user request
+  val sampleProducts = emptyList<Product>()
+
+  // Presets available for Admin to upload with 1-click
+  val adminPresetProducts = listOf(
     Product(
-      id = "prod_01",
+      id = "preset_01",
       name = "Aurelia Silk Pleated Maxi Dress",
       brand = "Elegan Women by NORANISA",
       category = "Dress & Gaun",

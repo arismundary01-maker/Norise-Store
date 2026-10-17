@@ -1,32 +1,27 @@
 package com.example.data
 
+import android.content.Context
+import android.util.Log
+import com.example.R
 import com.example.data.model.*
+import com.google.firebase.Firebase
+import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.text.SimpleDateFormat
 import java.util.*
 
-class FashionRepository {
+class FashionRepository(private val context: Context? = null) {
 
-  private val _products = MutableStateFlow<List<Product>>(FashionData.sampleProducts)
+  private val _products = MutableStateFlow<List<Product>>(emptyList())
   val products: StateFlow<List<Product>> = _products.asStateFlow()
 
-  private val _cartItems = MutableStateFlow<List<CartItem>>(
-    listOf(
-      // Seed initial item for great first impression
-      CartItem(
-        id = "cart_init_1",
-        product = FashionData.sampleProducts[0],
-        selectedColor = FashionData.sampleProducts[0].colors[0],
-        selectedSize = "M",
-        quantity = 1
-      )
-    )
-  )
+  private val _cartItems = MutableStateFlow<List<CartItem>>(emptyList())
   val cartItems: StateFlow<List<CartItem>> = _cartItems.asStateFlow()
 
-  private val _wishlistIds = MutableStateFlow<Set<String>>(setOf("prod_01", "prod_02"))
+  private val _wishlistIds = MutableStateFlow<Set<String>>(emptySet())
   val wishlistIds: StateFlow<Set<String>> = _wishlistIds.asStateFlow()
 
   private val _appliedVoucher = MutableStateFlow<Voucher?>(FashionData.availableVouchers[0])
@@ -34,6 +29,9 @@ class FashionRepository {
 
   private val _orders = MutableStateFlow<List<Order>>(emptyList())
   val orders: StateFlow<List<Order>> = _orders.asStateFlow()
+
+  private val _isAdminLoggedIn = MutableStateFlow(false)
+  val isAdminLoggedIn: StateFlow<Boolean> = _isAdminLoggedIn.asStateFlow()
 
   // Default address
   private val _recipientName = MutableStateFlow("Siti Aisyah")
@@ -45,78 +43,140 @@ class FashionRepository {
   private val _deliveryAddress = MutableStateFlow("Jl. Senopati Raya No. 42, Kebayoran Baru, Jakarta Selatan 12190")
   val deliveryAddress: StateFlow<String> = _deliveryAddress.asStateFlow()
 
-  init {
-    // Create an initial sample active order so user can immediately test order tracking!
-    createInitialSampleOrder()
+  private val db: FirebaseFirestore? by lazy {
+    try {
+      if (context != null) {
+        val dbId = context.getString(R.string.firestore_database_id)
+        FirebaseFirestore.getInstance(dbId)
+      } else {
+        null
+      }
+    } catch (e: Exception) {
+      Log.e("FashionRepository", "Firestore init error: ${e.message}")
+      null
+    }
   }
 
-  private fun createInitialSampleOrder() {
-    val initialItem = CartItem(
-      id = "item_demo",
-      product = FashionData.sampleProducts[1],
-      selectedColor = FashionData.sampleProducts[1].colors[0],
-      selectedSize = "S",
-      quantity = 1
-    )
-    val sampleOrder = Order(
-      id = "NR-GRAB-82914",
-      date = "Hari ini, 14:15 WIB",
-      items = listOf(initialItem),
-      subtotal = initialItem.product.price,
-      discount = 50000L,
-      shippingFee = 25000L,
-      total = initialItem.product.price - 50000L + 25000L,
-      status = OrderStatus.DALAM_PENGIRIMAN,
-      courierName = "GrabExpress Instant",
-      trackingNumber = "GRAB-EXP-99214738",
-      recipientName = _recipientName.value,
-      recipientPhone = _recipientPhone.value,
-      deliveryAddress = _deliveryAddress.value,
-      paymentMethod = "QRIS Instant (GoPay / ShopeePay)",
-      driverName = "Rahmat Hidayat",
-      driverVehicle = "Honda Vario 160 (B 4821 SQP)",
-      driverPhone = "0813-9821-4455",
-      estimatedDelivery = "Tiba dalam 25 menit (Sedang menuju lokasimu)",
-      progressPercent = 0.75f,
-      timeline = listOf(
-        OrderTimelineStep(
-          title = "Pesanan Dibuat & Terbayar",
-          time = "14:15 WIB",
-          description = "Pembayaran via QRIS berhasil diverifikasi otomatis.",
-          isCompleted = true,
-          isCurrent = false
-        ),
-        OrderTimelineStep(
-          title = "Dipacking & Quality Check Butik",
-          time = "14:22 WIB",
-          description = "Gaun diperiksa kualitas jahitannya, disetrika uap dan dikemas dengan box satin Norise Store by NORANISA.",
-          isCompleted = true,
-          isCurrent = false
-        ),
-        OrderTimelineStep(
-          title = "Diserahkan ke Kurir GrabExpress",
-          time = "14:35 WIB",
-          description = "Driver Rahmat Hidayat telah menerima paket dari Butik Norise Store Senopati.",
-          isCompleted = true,
-          isCurrent = false
-        ),
-        OrderTimelineStep(
-          title = "Kurir Dalam Perjalanan ke Alamat Tujuan",
-          time = "14:40 WIB",
-          description = "Kurir sedang melaju menuju lokasi Anda (Radius 3.2 km).",
-          isCompleted = true,
-          isCurrent = true
-        ),
-        OrderTimelineStep(
-          title = "Pesanan Tiba & Diterima",
-          time = "Estimasi 15:05 WIB",
-          description = "Paket diserahkan langsung ke penerima di alamat tujuan.",
-          isCompleted = false,
-          isCurrent = false
-        )
+  init {
+    listenToFirestoreProducts()
+  }
+
+  private fun listenToFirestoreProducts() {
+    val firestore = db ?: return
+    firestore.collection("products")
+      .addSnapshotListener { snapshot, error ->
+        if (error != null) {
+          Log.w("FashionRepository", "Firestore listen error: ${error.message}")
+          return@addSnapshotListener
+        }
+        if (snapshot != null) {
+          val list = snapshot.documents.mapNotNull { doc ->
+            try {
+              val p = doc.toObject(Product::class.java)
+              p?.copy(id = doc.id)
+            } catch (e: Exception) {
+              Log.e("FashionRepository", "Deserialize product error: ${e.message}")
+              null
+            }
+          }
+          // Only show clothes uploaded by admin on homepage
+          _products.value = list.filter { it.uploadedByAdmin }
+        }
+      }
+  }
+
+  fun loginAdmin(pinOrPassword: String): Boolean {
+    val trimmed = pinOrPassword.trim()
+    if (trimmed == "norise2026" || trimmed == "admin" || trimmed == "admin123") {
+      _isAdminLoggedIn.value = true
+      return true
+    }
+    return false
+  }
+
+  fun logoutAdmin() {
+    _isAdminLoggedIn.value = false
+  }
+
+  fun uploadProduct(
+    product: Product,
+    onSuccess: (String) -> Unit = {},
+    onError: (String) -> Unit = {}
+  ) {
+    val firestore = db
+    val productId = if (product.id.isNotBlank() && !product.id.startsWith("preset_")) {
+      product.id
+    } else {
+      "prod_${System.currentTimeMillis()}"
+    }
+
+    val productWithId = product.copy(id = productId, uploadedByAdmin = true)
+
+    if (firestore != null) {
+      val dataMap = hashMapOf<String, Any>(
+        "id" to productId,
+        "name" to productWithId.name,
+        "brand" to productWithId.brand,
+        "category" to productWithId.category,
+        "price" to productWithId.price,
+        "originalPrice" to productWithId.originalPrice,
+        "discountPercent" to productWithId.discountPercent,
+        "rating" to productWithId.rating.toDouble(),
+        "reviewCount" to productWithId.reviewCount,
+        "soldCount" to productWithId.soldCount,
+        "description" to productWithId.description,
+        "material" to productWithId.material,
+        "careGuide" to productWithId.careGuide,
+        "fitGuide" to productWithId.fitGuide,
+        "imageUrl" to productWithId.imageUrl,
+        "sizes" to productWithId.sizes,
+        "tags" to productWithId.tags,
+        "isBestSeller" to productWithId.isBestSeller,
+        "isNewArrival" to productWithId.isNewArrival,
+        "uploadedByAdmin" to true,
+        "createdAt" to FieldValue.serverTimestamp(),
+        "updatedAt" to FieldValue.serverTimestamp()
       )
-    )
-    _orders.value = listOf(sampleOrder)
+      val colorMaps = productWithId.colors.map { mapOf("name" to it.name, "hexCode" to it.hexCode) }
+      dataMap["colors"] = colorMaps
+
+      firestore.collection("products").document(productId)
+        .set(dataMap)
+        .addOnSuccessListener {
+          _products.value = listOf(productWithId) + _products.value.filter { it.id != productId }
+          onSuccess(productId)
+        }
+        .addOnFailureListener { e ->
+          Log.e("FashionRepository", "Upload failed: ${e.message}", e)
+          onError(e.localizedMessage ?: "Gagal menyimpan busana ke Firestore")
+        }
+    } else {
+      // Memory fallback for tests / local
+      _products.value = listOf(productWithId) + _products.value.filter { it.id != productId }
+      onSuccess(productId)
+    }
+  }
+
+  fun deleteProduct(
+    productId: String,
+    onSuccess: () -> Unit = {},
+    onError: (String) -> Unit = {}
+  ) {
+    val firestore = db
+    if (firestore != null) {
+      firestore.collection("products").document(productId)
+        .delete()
+        .addOnSuccessListener {
+          _products.value = _products.value.filter { it.id != productId }
+          onSuccess()
+        }
+        .addOnFailureListener { e ->
+          onError(e.localizedMessage ?: "Gagal menghapus produk")
+        }
+    } else {
+      _products.value = _products.value.filter { it.id != productId }
+      onSuccess()
+    }
   }
 
   fun updateAddress(name: String, phone: String, address: String) {
@@ -205,7 +265,7 @@ class FashionRepository {
     shippingFee: Long,
     total: Long
   ): Order {
-    val sdf = SimpleDateFormat("dd MMM yyyy, HH:mm 'WIB'", Locale("id", "ID"))
+    val sdf = SimpleDateFormat("dd MMM yyyy, HH:mm 'WIB'", Locale.getDefault())
     val orderId = "NR-${if (courier.isInstant) "GRAB" else "EXP"}-${Random().nextInt(90000) + 10000}"
     val newOrder = Order(
       id = orderId,
@@ -230,7 +290,7 @@ class FashionRepository {
       timeline = listOf(
         OrderTimelineStep(
           title = "Pesanan Berhasil Dibuat",
-          time = SimpleDateFormat("HH:mm 'WIB'", Locale("id", "ID")).format(Date()),
+          time = SimpleDateFormat("HH:mm 'WIB'", Locale.getDefault()).format(Date()),
           description = "Metode pembayaran ${paymentMethod.name} berhasil diverifikasi.",
           isCompleted = true,
           isCurrent = true

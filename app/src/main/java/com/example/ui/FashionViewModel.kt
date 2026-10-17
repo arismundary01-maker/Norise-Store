@@ -1,6 +1,7 @@
 package com.example.ui
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.FashionData
 import com.example.data.FashionRepository
@@ -17,6 +18,8 @@ sealed class Screen {
   object OrdersHistory : Screen()
   object Wishlist : Screen()
   object Profile : Screen()
+  object AdminLogin : Screen()
+  object AdminDashboard : Screen()
 }
 
 enum class SortOption(val title: String) {
@@ -28,8 +31,10 @@ enum class SortOption(val title: String) {
 }
 
 class FashionViewModel(
-  val repository: FashionRepository = FashionRepository()
-) : ViewModel() {
+  application: Application
+) : AndroidViewModel(application) {
+
+  val repository: FashionRepository = FashionRepository(application)
 
   private val _screenStack = MutableStateFlow<List<Screen>>(listOf(Screen.Home))
   val currentScreen: StateFlow<Screen> = _screenStack.map { it.lastOrNull() ?: Screen.Home }
@@ -65,9 +70,6 @@ class FashionViewModel(
   private val _showAddressDialog = MutableStateFlow(false)
   val showAddressDialog: StateFlow<Boolean> = _showAddressDialog.asStateFlow()
 
-  private val _snackbarMessage = MutableSharedFlow<String>()
-  val snackbarMessage: SharedFlow<String> = _snackbarMessage.asSharedFlow()
-
   val cartItems = repository.cartItems
   val wishlistIds = repository.wishlistIds
   val appliedVoucher = repository.appliedVoucher
@@ -75,6 +77,7 @@ class FashionViewModel(
   val recipientName = repository.recipientName
   val recipientPhone = repository.recipientPhone
   val deliveryAddress = repository.deliveryAddress
+  val isAdminLoggedIn = repository.isAdminLoggedIn
 
   val filteredProducts: StateFlow<List<Product>> = combine(
     repository.products,
@@ -105,11 +108,10 @@ class FashionViewModel(
       SortOption.PRICE_LOW -> result.sortedBy { it.price }
       SortOption.PRICE_HIGH -> result.sortedByDescending { it.price }
     }
-  }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), FashionData.sampleProducts)
+  }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
   fun navigateTo(screen: Screen) {
     val current = _screenStack.value.toMutableList()
-    // Don't add duplicate top
     if (current.lastOrNull() != screen) {
       current.add(screen)
       _screenStack.value = current
@@ -128,7 +130,7 @@ class FashionViewModel(
 
   fun selectProduct(product: Product) {
     _selectedProduct.value = product
-    _selectedColor.value = product.colors.firstOrNull()
+    _selectedColor.value = product.colors.firstOrNull() ?: ColorOption("Rose Blush", 0xFF9E3A59)
     _selectedSize.value = product.sizes.firstOrNull() ?: "M"
     navigateTo(Screen.ProductDetail(product))
   }
@@ -180,13 +182,13 @@ class FashionViewModel(
 
   fun addToCartCurrentProduct(quantity: Int = 1) {
     val product = _selectedProduct.value ?: return
-    val color = _selectedColor.value ?: product.colors.first()
+    val color = _selectedColor.value ?: product.colors.firstOrNull() ?: ColorOption("Rose", 0xFF9E3A59)
     val size = _selectedSize.value
     repository.addToCart(product, color, size, quantity)
   }
 
   fun addToCart(product: Product, quantity: Int = 1) {
-    val color = product.colors.first()
+    val color = product.colors.firstOrNull() ?: ColorOption("Default", 0xFF9E3A59)
     val size = product.sizes.firstOrNull() ?: "M"
     repository.addToCart(product, color, size, quantity)
   }
@@ -218,12 +220,53 @@ class FashionViewModel(
       total = total
     )
 
-    // Clear navigation stack to order tracking
     _screenStack.value = listOf(Screen.Home, Screen.OrderTracking(newOrder.id))
     return newOrder
   }
 
   fun advanceTracking(orderId: String) {
     repository.advanceOrderStatus(orderId)
+  }
+
+  // Admin Features
+  fun loginAdmin(pin: String): Boolean {
+    val success = repository.loginAdmin(pin)
+    if (success) {
+      navigateTo(Screen.AdminDashboard)
+    }
+    return success
+  }
+
+  fun logoutAdmin() {
+    repository.logoutAdmin()
+    navigateTo(Screen.Home)
+  }
+
+  fun uploadProduct(
+    product: Product,
+    onSuccess: () -> Unit = {},
+    onError: (String) -> Unit = {}
+  ) {
+    repository.uploadProduct(
+      product = product,
+      onSuccess = { onSuccess() },
+      onError = onError
+    )
+  }
+
+  fun deleteProduct(
+    productId: String,
+    onSuccess: () -> Unit = {},
+    onError: (String) -> Unit = {}
+  ) {
+    repository.deleteProduct(productId, onSuccess, onError)
+  }
+
+  fun uploadPresetProduct(
+    preset: Product,
+    onSuccess: () -> Unit = {},
+    onError: (String) -> Unit = {}
+  ) {
+    repository.uploadProduct(preset, { onSuccess() }, onError)
   }
 }

@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Norise Store Firestore Blueprint",
+  "entities": {
+    "Product": {
+      "collection": "products",
+      "description": "Koleksi busana wanita yang diunggah oleh admin Norise Store",
+      "fields": {
+        "name": { "type": "string" },
+        "brand": { "type": "string" },
+        "category": { "type": "string" },
+        "price": { "type": "number" },
+        "originalPrice": { "type": "number" },
+        "discountPercent": { "type": "number" },
+        "rating": { "type": "number" },
+        "reviewCount": { "type": "number" },
+        "soldCount": { "type": "number" },
+        "description": { "type": "string" },
+        "material": { "type": "string" },
+        "careGuide": { "type": "string" },
+        "fitGuide": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "colors": { "type": "array" },
+        "sizes": { "type": "array" },
+        "tags": { "type": "array" },
+        "isBestSeller": { "type": "boolean" },
+        "isNewArrival": { "type": "boolean" },
+        "uploadedByAdmin": { "type": "boolean" },
+        "createdAt": { "type": "timestamp" },
+        "updatedAt": { "type": "timestamp" }
+      }
+    },
+    "UserOrder": {
+      "collection": "users/{userId}/orders",
+      "description": "Riwayat pesanan pengguna",
+      "fields": {
+        "userId": { "type": "string" },
+        "date": { "type": "string" },
+        "total": { "type": "number" },
+        "subtotal": { "type": "number" },
+        "discount": { "type": "number" },
+        "shippingFee": { "type": "number" },
+        "status": { "type": "string" },
+        "courierName": { "type": "string" },
+        "trackingNumber": { "type": "string" },
+        "paymentMethod": { "type": "string" },
+        "createdAt": { "type": "timestamp" },
+        "updatedAt": { "type": "timestamp" }
+      }
+    }
+  }
+}

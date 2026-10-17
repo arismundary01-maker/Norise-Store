@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.FashionData
 import com.example.ui.FashionViewModel
+import com.example.ui.Screen
 import com.example.ui.components.AddressEditDialog
 import com.example.ui.components.SizeGuideDialog
 import com.example.ui.theme.*
@@ -306,6 +307,42 @@ fun ProfileScreen(
             Text("Tukar ukuran mudah bila gaun tidak pas di badan", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
           }
         }
+      }
+    }
+
+    // 6. Admin Portal Entry
+    Card(
+      shape = RoundedCornerShape(16.dp),
+      colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+      modifier = Modifier
+        .fillMaxWidth()
+        .clickable {
+          if (viewModel.isAdminLoggedIn.value) {
+            viewModel.navigateTo(Screen.AdminDashboard)
+          } else {
+            viewModel.navigateTo(Screen.AdminLogin)
+          }
+        }
+        .testTag("admin_portal_entry")
+    ) {
+      Row(
+        modifier = Modifier.padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically
+      ) {
+        Box(
+          modifier = Modifier
+            .size(40.dp)
+            .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
+          contentAlignment = Alignment.Center
+        ) {
+          Icon(Icons.Default.AdminPanelSettings, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+        }
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+          Text("Portal Admin Norise Store", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
+          Text("Upload dan kelola koleksi baju yang tayang di beranda", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+        }
+        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color.Gray)
       }
     }
 

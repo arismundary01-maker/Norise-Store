@@ -1,49 +1,50 @@
 package com.example.data.model
 
 data class ColorOption(
-  val name: String,
-  val hexCode: Long
+  val name: String = "",
+  val hexCode: Long = 0xFF9E3A59
 )
 
 data class SizeGuideItem(
-  val size: String,
-  val bust: String,
-  val waist: String,
-  val hip: String,
-  val length: String
+  val size: String = "",
+  val bust: String = "",
+  val waist: String = "",
+  val hip: String = "",
+  val length: String = ""
 )
 
 data class ReviewItem(
-  val reviewerName: String,
-  val rating: Int,
-  val date: String,
-  val size: String,
-  val color: String,
-  val comment: String,
+  val reviewerName: String = "",
+  val rating: Int = 5,
+  val date: String = "",
+  val size: String = "",
+  val color: String = "",
+  val comment: String = "",
   val verified: Boolean = true
 )
 
 data class Product(
-  val id: String,
-  val name: String,
-  val brand: String,
-  val category: String,
-  val price: Long,
-  val originalPrice: Long,
-  val discountPercent: Int,
-  val rating: Float,
-  val reviewCount: Int,
-  val soldCount: Int,
-  val description: String,
-  val material: String,
-  val careGuide: String,
-  val fitGuide: String,
-  val imageUrl: String,
-  val colors: List<ColorOption>,
-  val sizes: List<String>,
-  val tags: List<String>,
+  val id: String = "",
+  val name: String = "",
+  val brand: String = "Elegan Women by NORANISA",
+  val category: String = "Dress & Gaun",
+  val price: Long = 0L,
+  val originalPrice: Long = 0L,
+  val discountPercent: Int = 0,
+  val rating: Float = 5.0f,
+  val reviewCount: Int = 0,
+  val soldCount: Int = 0,
+  val description: String = "",
+  val material: String = "",
+  val careGuide: String = "",
+  val fitGuide: String = "",
+  val imageUrl: String = "",
+  val colors: List<ColorOption> = emptyList(),
+  val sizes: List<String> = emptyList(),
+  val tags: List<String> = emptyList(),
   val isBestSeller: Boolean = false,
-  val isNewArrival: Boolean = false
+  val isNewArrival: Boolean = false,
+  val uploadedByAdmin: Boolean = true
 )
 
 data class CartItem(
