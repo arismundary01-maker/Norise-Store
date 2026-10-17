@@ -1,0 +1,6 @@
+{
+  "name": "Norise Store",
+  "description": "Butik busana wanita Elegan Women by NORANISA - aplikasi penjualan baju wanita eksklusif dengan kurasi gaya elegan, sistem checkout terintegrasi, dan pelacakan pesanan real-time.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
